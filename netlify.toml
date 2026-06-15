@@ -1,0 +1,14 @@
+# Netlify configuration for MOUS (Next.js 14 App Router)
+# The official Next.js runtime handles SSR, route handlers, and middleware.
+
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+# Pin a modern, supported Node version for the build.
+[build.environment]
+  NODE_VERSION = "20"
+
+# Official Netlify Next.js runtime (auto-installed, declared here for clarity).
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
