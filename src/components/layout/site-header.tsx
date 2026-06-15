@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
-import { Menu, PenLine, Search, X } from "lucide-react";
+import { LogIn, Menu, PenLine, Search, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
@@ -17,14 +17,24 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { NAV_LINKS } from "@/lib/constants";
-import { getCurrentProfile } from "@/lib/data";
+import { signOut } from "@/lib/actions";
+import type { Profile } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 /** App-wide sticky header with responsive nav and an account menu. */
-export function SiteHeader() {
+export function SiteHeader({ profile }: { profile: Profile | null }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const me = getCurrentProfile();
+  // The signed-in profile is resolved server-side and passed in as a prop.
+  const me = profile;
+
+  // Sign out via the server action, then return home and refresh server data.
+  async function handleSignOut() {
+    await signOut();
+    router.push("/");
+    router.refresh();
+  }
 
   // Header is hidden on the immersive landing page (it has its own nav).
   if (pathname === "/") return null;
@@ -75,44 +85,55 @@ export function SiteHeader() {
             </Link>
           </Button>
 
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="rounded-full outline-none ring-offset-background transition focus-visible:ring-2 focus-visible:ring-ring">
-                <AnonAvatar seed={me.avatar_style} name={me.anonymous_name} size={36} />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel>
-                <div className="flex flex-col">
-                  <span className="text-sm font-semibold text-foreground">
-                    {me.anonymous_name}
-                  </span>
-                  <span className="text-xs font-normal text-muted-foreground">
-                    Your identity stays hidden
-                  </span>
-                </div>
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <Link href="/dashboard">Dashboard</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href={`/profile/${encodeURIComponent(me.anonymous_name.toLowerCase().replace(/\s+/g, "-"))}`}>
-                  Public profile
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/missions">Story Missions</Link>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <Link href="/privacy">Privacy</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/auth">Sign out</Link>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {me ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="rounded-full outline-none ring-offset-background transition focus-visible:ring-2 focus-visible:ring-ring">
+                  <AnonAvatar seed={me.avatar_style} name={me.anonymous_name} size={36} />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>
+                  <div className="flex flex-col">
+                    <span className="text-sm font-semibold text-foreground">
+                      {me.anonymous_name}
+                    </span>
+                    <span className="text-xs font-normal text-muted-foreground">
+                      Your identity stays hidden
+                    </span>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link href="/dashboard">Dashboard</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href={`/profile/${encodeURIComponent(me.anonymous_name.toLowerCase().replace(/\s+/g, "-"))}`}>
+                    Public profile
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/missions">Story Missions</Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link href="/privacy">Privacy</Link>
+                </DropdownMenuItem>
+                {/* Sign out via the server action, then route home. */}
+                <DropdownMenuItem onSelect={() => void handleSignOut()}>
+                  Sign out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            // Logged out: offer a sign-in link in place of the account menu.
+            <Button asChild variant="brand" size="sm">
+              <Link href="/auth">
+                <LogIn className="h-4 w-4" />
+                Sign in
+              </Link>
+            </Button>
+          )}
 
           <Button
             variant="ghost"

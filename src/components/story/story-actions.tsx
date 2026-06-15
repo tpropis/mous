@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/toaster";
+import { fileReport, toggleBookmark as toggleBookmarkAction } from "@/lib/actions";
 import { cn } from "@/lib/utils";
 
 interface StoryActionsProps {
@@ -49,17 +50,30 @@ export function StoryActions({ storyId, title }: StoryActionsProps) {
   const [reason, setReason] = useState("");
   const [details, setDetails] = useState("");
 
-  function toggleBookmark() {
-    setBookmarked((prev) => {
-      const next = !prev;
+  async function toggleBookmark() {
+    // Optimistically flip, then reconcile with the server's authoritative state.
+    const optimistic = !bookmarked;
+    setBookmarked(optimistic);
+
+    const result = await toggleBookmarkAction(storyId);
+    if (!result.ok) {
+      setBookmarked(!optimistic); // revert on failure
       toast({
-        title: next ? "Saved" : "Removed",
-        description: next
-          ? "Added to your bookmarks."
-          : "Removed from your bookmarks.",
-        variant: next ? "success" : "default",
+        title: "Couldn't update bookmark",
+        description: result.error ?? "Please try again.",
+        variant: "error",
       });
-      return next;
+      return;
+    }
+
+    const saved = result.data?.saved ?? optimistic;
+    setBookmarked(saved);
+    toast({
+      title: saved ? "Saved" : "Removed",
+      description: saved
+        ? "Added to your bookmarks."
+        : "Removed from your bookmarks.",
+      variant: saved ? "success" : "default",
     });
   }
 
@@ -83,7 +97,7 @@ export function StoryActions({ storyId, title }: StoryActionsProps) {
     }
   }
 
-  function submitReport() {
+  async function submitReport() {
     if (!reason) {
       toast({ title: "Pick a reason first", variant: "error" });
       return;
@@ -96,6 +110,16 @@ export function StoryActions({ storyId, title }: StoryActionsProps) {
       description: "Thank you — our team will review this story.",
       variant: "success",
     });
+
+    // Persist the report; surface an error toast if the server rejects it.
+    const result = await fileReport("story", storyId, reason, details || undefined);
+    if (!result.ok) {
+      toast({
+        title: "Couldn't submit report",
+        description: result.error ?? "Please try again.",
+        variant: "error",
+      });
+    }
   }
 
   return (

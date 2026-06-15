@@ -47,7 +47,7 @@ export default function WritePage({ searchParams }: WritePageProps) {
         </p>
       </div>
 
-      <StoryEditor missionPrompt={mission?.prompt} />
+      <StoryEditor missionPrompt={mission?.prompt} missionId={mission?.id} />
     </div>
   );
 }

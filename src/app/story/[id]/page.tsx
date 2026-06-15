@@ -20,7 +20,7 @@ import { ContentGate } from "@/components/story/content-gate";
 import { StoryActions } from "@/components/story/story-actions";
 import { ReviewSection } from "@/components/story/review-section";
 import { WriteYourVersion } from "@/components/story/write-your-version";
-import { getRelatedStories, getReviews, getStory } from "@/lib/data";
+import { getRelatedStories, getReviews, getStory } from "@/lib/queries";
 import { REVIEW_DIMENSIONS } from "@/lib/constants";
 import type { ReviewSummary, Story } from "@/lib/types";
 import { nameToSlug } from "@/lib/anon";
@@ -40,8 +40,8 @@ function dimensionScore(summary: ReviewSummary, key: string): number {
   return typeof value === "number" ? value : 0;
 }
 
-export function generateMetadata({ params }: StoryPageProps): Metadata {
-  const story = getStory(params.id);
+export async function generateMetadata({ params }: StoryPageProps): Promise<Metadata> {
+  const story = await getStory(params.id);
   if (!story) return { title: "Story not found · MOUS" };
   return {
     title: `${story.title} · MOUS`,
@@ -49,13 +49,13 @@ export function generateMetadata({ params }: StoryPageProps): Metadata {
   };
 }
 
-export default function StoryPage({ params }: StoryPageProps) {
-  const story = getStory(params.id);
+export default async function StoryPage({ params }: StoryPageProps) {
+  const story = await getStory(params.id);
   if (!story) notFound();
 
   const author = story.author;
-  const reviews = getReviews(story.id);
-  const related = getRelatedStories(story);
+  const reviews = await getReviews(story.id);
+  const related = await getRelatedStories(story);
   const paragraphs = story.body.split("\n").filter((p) => p.trim().length > 0);
   const summary = story.review_summary;
 
@@ -134,7 +134,9 @@ export default function StoryPage({ params }: StoryPageProps) {
           <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-muted-foreground">
             How did this land?
           </h2>
-          {story.reactions && <ReactionBar initial={story.reactions} />}
+          {story.reactions && (
+            <ReactionBar storyId={story.id} initial={story.reactions} />
+          )}
           <StoryActions storyId={story.id} title={story.title} />
         </div>
 

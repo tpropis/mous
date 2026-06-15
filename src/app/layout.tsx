@@ -5,6 +5,7 @@ import { Providers } from "./providers";
 import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { BRAND } from "@/lib/constants";
+import { getCurrentProfile } from "@/lib/queries";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -54,11 +55,14 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  // Resolve the signed-in profile on the server and hand it to the client header.
+  const profile = await getCurrentProfile();
+
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
       <body
@@ -66,7 +70,7 @@ export default function RootLayout({
       >
         <Providers>
           <div className="relative flex min-h-dvh flex-col">
-            <SiteHeader />
+            <SiteHeader profile={profile} />
             <main className="flex-1">{children}</main>
             <SiteFooter />
           </div>

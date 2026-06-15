@@ -53,9 +53,16 @@ export interface FeedFilters {
   missionOnly?: boolean;
 }
 
-/** Query published stories with sorting + filtering. */
-export function getStories(filters: FeedFilters = {}): Story[] {
-  let list = MOCK_STORIES.filter((s) => s.status === "published").map(withAuthor);
+/**
+ * Pure filter + sort over an already-loaded story list. Shared by the mock path
+ * and the live Supabase path (src/lib/queries.ts) so feed behavior is identical
+ * regardless of data source.
+ */
+export function applyFeedFilters(
+  source: Story[],
+  filters: FeedFilters = {},
+): Story[] {
+  let list = [...source];
 
   const {
     category,
@@ -129,6 +136,14 @@ export function getStories(filters: FeedFilters = {}): Story[] {
   }
 
   return list;
+}
+
+/** Query published mock stories with sorting + filtering. */
+export function getStories(filters: FeedFilters = {}): Story[] {
+  const published = MOCK_STORIES.filter((s) => s.status === "published").map(
+    withAuthor,
+  );
+  return applyFeedFilters(published, filters);
 }
 
 export function getFeaturedStories(): Story[] {

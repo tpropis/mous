@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -40,6 +41,8 @@ import {
 } from "@/components/story/story-meta";
 import { PromptGenerator } from "@/components/write/prompt-generator";
 import { PublishSuccess } from "@/components/write/publish-success";
+// Server action (callable from this client component) — the single write path.
+import { publishStory, type PublishInput } from "@/lib/actions";
 import {
   CATEGORY_NAMES,
   CONTENT_GUIDELINE,
@@ -116,10 +119,13 @@ const FIRST_STORY_KEY = "mous:has-published";
 
 interface StoryEditorProps {
   missionPrompt?: string;
+  /** When writing for a mission, the id is forwarded to the publish payload. */
+  missionId?: string;
 }
 
-export function StoryEditor({ missionPrompt }: StoryEditorProps) {
+export function StoryEditor({ missionPrompt, missionId }: StoryEditorProps) {
   const { toast } = useToast();
+  const router = useRouter();
   const [preview, setPreview] = React.useState(false);
   const [tagDraft, setTagDraft] = React.useState("");
   const [savedAt, setSavedAt] = React.useState<number | null>(null);
@@ -222,18 +228,61 @@ export function StoryEditor({ missionPrompt }: StoryEditorProps) {
   };
 
   /* ----------------------------------------------------------------- Actions */
-  const saveDraft = () => {
+  // Map the form's camelCase fields onto the PublishInput contract (snake_case,
+  // tags as string[], mission_id forwarded when present).
+  const toPublishInput = (
+    data: StoryFormValues,
+    status: PublishInput["status"],
+  ): PublishInput => ({
+    title: data.title,
+    body: data.body,
+    category: data.category,
+    mood: data.mood,
+    tags: data.tags,
+    truth_type: data.truthType,
+    location_visibility: data.locationVisibility,
+    city: data.city || null,
+    state: data.state || null,
+    content_warning: data.contentWarning,
+    content_warning_label: data.contentWarningLabel || null,
+    mission_id: missionId ?? null,
+    status,
+  });
+
+  const saveDraft = async () => {
+    // Keep the local autosave as an offline safety net…
     try {
       window.localStorage.setItem(DRAFT_KEY, JSON.stringify(getValues()));
       setSavedAt(Date.now());
     } catch {
       // ignore
     }
+    // …then persist the draft through the server action.
+    const result = await publishStory(toPublishInput(getValues(), "draft"));
+    if (!result.ok) {
+      toast({
+        title: "Couldn't save draft",
+        description: result.error,
+        variant: "error",
+      });
+      return;
+    }
     toast({ title: "Draft saved", variant: "success" });
   };
 
-  const onPublish = handleSubmit((data) => {
-    // Detect the author's first-ever publish (mock, via localStorage) so we can
+  const onPublish = handleSubmit(async (data) => {
+    // Validation has passed — write the story via the server action.
+    const result = await publishStory(toPublishInput(data, "published"));
+    if (!result.ok) {
+      toast({
+        title: "Couldn't publish",
+        description: result.error,
+        variant: "error",
+      });
+      return;
+    }
+
+    // Detect the author's first-ever publish (via localStorage) so we can
     // show extra celebratory copy. Then mark them as a returning author.
     let isFirst = true;
     try {
@@ -245,8 +294,13 @@ export function StoryEditor({ missionPrompt }: StoryEditorProps) {
     }
     setFirstStory(isFirst);
     setPublished(true);
-    // keep `data` referenced; in a real app this is the payload to persist
-    void data;
+
+    // When the action returns a real persisted id (not the demo stub), route to
+    // the new story after the success overlay has had a beat to celebrate.
+    const newId = result.data?.id;
+    if (newId && newId !== "demo") {
+      router.push(`/story/${newId}`);
+    }
   });
 
   const writeAnother = () => {

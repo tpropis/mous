@@ -20,7 +20,7 @@ import { StoryCard } from "@/components/story/story-card";
 import { Reveal } from "@/components/common/reveal";
 import { SectionHeading } from "@/components/common/section-heading";
 import { BRAND, CATEGORIES } from "@/lib/constants";
-import { getFeaturedStories } from "@/lib/data";
+import { getFeaturedStories } from "@/lib/queries";
 
 const FEATURES = [
   {
@@ -63,8 +63,9 @@ const STEPS = [
   },
 ];
 
-export default function LandingPage() {
-  const featured = getFeaturedStories();
+export default async function LandingPage() {
+  // Featured stories now come from the async read layer (falls back to mock data).
+  const featured = await getFeaturedStories();
   const trendingCategories = CATEGORIES.slice(0, 12);
 
   return (

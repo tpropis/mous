@@ -5,18 +5,34 @@ import { motion } from "framer-motion";
 import { Check, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toaster";
+import { toggleFollow } from "@/lib/actions";
 
 /**
- * Follow toggle. Optimistic UI + toast. In production this would call a
- * server action that inserts/deletes a `follows` row under RLS, keyed on the
- * authenticated user — never exposing any real identity.
+ * Follow toggle. Calls the `toggleFollow` server action, which inserts/deletes
+ * a `follows` row under RLS keyed on the authenticated user — never exposing any
+ * real identity. The returned `following` flag drives the button state + toast.
  */
-export function FollowButton({ anonymousName }: { anonymousName: string }) {
+export function FollowButton({
+  profileId,
+  anonymousName,
+}: {
+  profileId: string;
+  anonymousName: string;
+}) {
   const { toast } = useToast();
   const [following, setFollowing] = useState(false);
 
-  function toggle() {
-    const next = !following;
+  async function toggle() {
+    const res = await toggleFollow(profileId);
+    if (!res.ok || !res.data) {
+      toast({
+        title: "Couldn't update follow",
+        description: res.error,
+        variant: "error",
+      });
+      return;
+    }
+    const next = res.data.following;
     setFollowing(next);
     toast({
       title: next ? "Following anonymously" : "Unfollowed",

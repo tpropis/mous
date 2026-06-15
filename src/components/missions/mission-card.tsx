@@ -7,6 +7,8 @@ import { Check, CheckCircle2, Compass, PenLine, Sparkles, Users } from "lucide-r
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/toaster";
+// Server actions for the live write path (fire-and-forget alongside the optimistic UI).
+import { acceptMission, completeMission } from "@/lib/actions";
 import { getBadge } from "@/lib/badges";
 import { DIFFICULTY_META } from "@/lib/constants";
 import type { Mission } from "@/lib/types";
@@ -40,12 +42,18 @@ export function MissionCard({
   const rewardBadge = mission.reward_badge ? getBadge(mission.reward_badge) : undefined;
 
   function handleAccept() {
+    // Optimistic UI first, then persist via the server action (fire-and-forget).
     onAccept(mission.id);
     setJustAccepted(true);
     toast({
       title: "Mission accepted",
       description: `“${mission.title}” — now go live it.`,
       variant: "success",
+    });
+    void acceptMission(mission.id).then((result) => {
+      if (!result.ok) {
+        toast({ title: "Couldn't accept mission", description: result.error, variant: "error" });
+      }
     });
   }
 
@@ -57,6 +65,11 @@ export function MissionCard({
         ? `You earned the ${rewardBadge.name} badge.`
         : "You went out there. Proud of you.",
       variant: "success",
+    });
+    void completeMission(mission.id).then((result) => {
+      if (!result.ok) {
+        toast({ title: "Couldn't complete mission", description: result.error, variant: "error" });
+      }
     });
   }
 

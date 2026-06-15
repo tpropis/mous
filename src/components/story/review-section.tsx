@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { EmptyState } from "@/components/common/empty-state";
 import { useToast } from "@/components/ui/toaster";
 import { getCurrentProfile } from "@/lib/data";
+import { submitReview } from "@/lib/actions";
 import { REVIEW_DIMENSIONS } from "@/lib/constants";
 import type { ReviewSummary, StoryReview } from "@/lib/types";
 import { cn, timeAgo } from "@/lib/utils";
@@ -128,7 +129,7 @@ export function ReviewSection({ storyId, reviews }: ReviewSectionProps) {
     },
   });
 
-  function onSubmit(data: ReviewForm) {
+  async function onSubmit(data: ReviewForm) {
     const me = getCurrentProfile();
     // Optimistically prepend the new review (production would POST to Supabase).
     const optimistic: StoryReview = {
@@ -156,6 +157,24 @@ export function ReviewSection({ storyId, reviews }: ReviewSectionProps) {
       description: "Thanks for sharing how this story landed.",
       variant: "success",
     });
+
+    // Persist the review; surface an error toast if the server rejects it.
+    const result = await submitReview(storyId, {
+      rating: data.rating,
+      writing_score: data.writing_score,
+      honesty_score: data.honesty_score,
+      emotion_score: data.emotion_score,
+      impact_score: data.impact_score,
+      entertainment_score: data.entertainment_score,
+      review_text: data.review_text?.trim() || null,
+    });
+    if (!result.ok) {
+      toast({
+        title: "Couldn't post review",
+        description: result.error ?? "Please try again.",
+        variant: "error",
+      });
+    }
   }
 
   return (

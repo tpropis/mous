@@ -1,6 +1,7 @@
 import { Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { FeedExperience } from "@/components/feed/feed-experience";
+import { getStories } from "@/lib/queries";
 
 /** Read a possibly-array search param as a single string. */
 function single(value: string | string[] | undefined): string | undefined {
@@ -16,11 +17,14 @@ interface FeedPageProps {
   };
 }
 
-export default function FeedPage({ searchParams }: FeedPageProps) {
+export default async function FeedPage({ searchParams }: FeedPageProps) {
   const initialSort = single(searchParams.sort);
   const initialCategory = single(searchParams.category);
   const initialSearch = single(searchParams.search);
   const initialFocus = single(searchParams.focus);
+
+  // Fetch all published stories on the server; the client filters/sorts in-memory.
+  const initialStories = await getStories();
 
   return (
     <div className="container py-10 sm:py-14">
@@ -41,6 +45,7 @@ export default function FeedPage({ searchParams }: FeedPageProps) {
       </div>
 
       <FeedExperience
+        initialStories={initialStories}
         initialSort={initialSort}
         initialCategory={initialCategory}
         initialSearch={initialSearch}

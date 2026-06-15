@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { Lock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { AnonAvatar } from "@/components/anon-avatar";
 import { Dashboard } from "@/components/dashboard/dashboard";
-import { getCurrentProfile } from "@/lib/data";
+import { getCurrentProfile, getReviews, getStoriesByAuthor } from "@/lib/queries";
 
 export const metadata: Metadata = {
   title: "Your dashboard — MOUS",
@@ -15,8 +16,16 @@ export const metadata: Metadata = {
  * author by their anonymous name (never a real name) and renders the client
  * analytics surface.
  */
-export default function DashboardPage() {
-  const profile = getCurrentProfile();
+export default async function DashboardPage() {
+  const profile = await getCurrentProfile();
+  // The dashboard is private — bounce logged-out visitors to auth.
+  if (!profile) redirect("/auth?next=/dashboard");
+
+  // Source the author's stories and the reviews across all of them, server-side.
+  const stories = await getStoriesByAuthor(profile.id);
+  const reviews = (
+    await Promise.all(stories.map((s) => getReviews(s.id)))
+  ).flat();
 
   return (
     <div className="container py-10 sm:py-14">
@@ -42,7 +51,7 @@ export default function DashboardPage() {
         </Badge>
       </header>
 
-      <Dashboard />
+      <Dashboard profile={profile} stories={stories} reviews={reviews} />
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { Compass, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Reveal } from "@/components/common/reveal";
 import { MissionsBoard } from "@/components/missions/missions-board";
+import { getStories } from "@/lib/queries";
 
 export const metadata: Metadata = {
   title: "Story Missions — MOUS",
@@ -14,7 +15,10 @@ export const metadata: Metadata = {
  * Story Missions — the "Get Out There" engine. A server shell with a cinematic
  * hero over the interactive client board.
  */
-export default function MissionsPage() {
+export default async function MissionsPage() {
+  // Live read on the server; the first few feed the "started as missions" rail.
+  const stories = (await getStories()).slice(0, 5);
+
   return (
     <div className="relative">
       {/* ---------------------------------------------------------------- Hero */}
@@ -66,7 +70,7 @@ export default function MissionsPage() {
 
       {/* -------------------------------------------------------------- Board */}
       <section className="container py-14">
-        <MissionsBoard />
+        <MissionsBoard stories={stories} />
       </section>
     </div>
   );

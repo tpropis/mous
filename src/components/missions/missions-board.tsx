@@ -7,8 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/common/empty-state";
 import { SectionHeading } from "@/components/common/section-heading";
 import { StoryCard } from "@/components/story/story-card";
-import { MISSIONS, getStories } from "@/lib/data";
-import type { Mission } from "@/lib/types";
+import { MISSIONS } from "@/lib/data";
+import type { Mission, Story } from "@/lib/types";
 import { MissionCard } from "./mission-card";
 
 const STORAGE_KEY = "mous:missions";
@@ -19,11 +19,16 @@ interface MissionProgress {
   completed: string[];
 }
 
+interface MissionsBoardProps {
+  /** Stories for the "started as missions" rail, fetched on the server. */
+  stories: Story[];
+}
+
 /**
  * The interactive missions board. Accepted/completed state lives here (and in
  * localStorage) so the tabs can filter, and is passed down to each card.
  */
-export function MissionsBoard() {
+export function MissionsBoard({ stories }: MissionsBoardProps) {
   const [accepted, setAccepted] = useState<Set<string>>(new Set());
   const [completed, setCompleted] = useState<Set<string>>(new Set());
   const [hydrated, setHydrated] = useState(false);
@@ -71,10 +76,9 @@ export function MissionsBoard() {
     [completed],
   );
 
-  // In production these would be `getStories({ missionOnly: true })`, filtered by
-  // mission_id. The mock stories don't carry mission_id yet, so we surface a
-  // curated rail of the top stories as a stand-in.
-  const missionStories = useMemo(() => getStories().slice(0, 5), []);
+  // Stories for the rail come from the server (passed as a prop) — client
+  // components can't read the query layer directly.
+  const missionStories = stories;
 
   function renderGrid(list: Mission[], emptyHint: string) {
     if (list.length === 0) {

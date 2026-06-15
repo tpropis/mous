@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { ShieldAlert } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 import { AdminDashboard } from "@/components/admin/admin-dashboard";
+import { getCurrentProfile, getStories, getTopWriters } from "@/lib/queries";
 
 export const metadata: Metadata = {
   title: "Admin · The Curator",
@@ -21,7 +23,16 @@ export const metadata: Metadata = {
  * service-role client, and every table is additionally protected by RLS so a
  * forged client request can never reach moderator data.
  */
-export default function AdminPage() {
+export default async function AdminPage() {
+  // Server-side admin gate: resolve the session profile and check is_admin.
+  const profile = await getCurrentProfile();
+  const authorized = profile?.is_admin === true;
+
+  // Only load moderation data once we know the viewer is an admin.
+  const [stories, writers] = authorized
+    ? await Promise.all([getStories(), getTopWriters(20)])
+    : [[], []];
+
   return (
     <div className="container py-10 sm:py-14">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -42,7 +53,16 @@ export default function AdminPage() {
       </div>
 
       <div className="mt-8">
-        <AdminDashboard />
+        {authorized ? (
+          <AdminDashboard stories={stories} writers={writers} />
+        ) : (
+          <Card className="bg-card/40 p-8 text-center">
+            <h2 className="text-lg font-semibold">Not authorized</h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              You need an admin account to view this dashboard.
+            </p>
+          </Card>
+        )}
       </div>
     </div>
   );
