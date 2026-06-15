@@ -1,0 +1,147 @@
+import type { Profile } from "../types";
+
+/** Seed profiles. Public, anonymous-safe — no emails or real names anywhere. */
+export const MOCK_PROFILES: Profile[] = [
+  {
+    id: "p1",
+    user_id: "u1",
+    anonymous_name: "Midnight Witness",
+    avatar_style: "a8f3k2",
+    bio: "I write down the things people say at 3am. Some of them were mine.",
+    is_admin: false,
+    created_at: "2026-01-12T08:00:00Z",
+    stats: {
+      stories: 14,
+      total_views: 184_320,
+      total_reads: 96_410,
+      total_reviews: 612,
+      average_rating: 4.7,
+      followers: 2840,
+      following: 31,
+      streak_days: 23,
+    },
+  },
+  {
+    id: "p2",
+    user_id: "u2",
+    anonymous_name: "The Blue Stranger",
+    avatar_style: "z1m9q4",
+    bio: "Far from home, close to myself. Mostly travel and the people in between.",
+    is_admin: false,
+    created_at: "2026-02-02T08:00:00Z",
+    stats: {
+      stories: 9,
+      total_views: 92_140,
+      total_reads: 51_020,
+      total_reviews: 318,
+      average_rating: 4.6,
+      followers: 1610,
+      following: 22,
+      streak_days: 8,
+    },
+  },
+  {
+    id: "p3",
+    user_id: "u3",
+    anonymous_name: "Ghost Typewriter",
+    avatar_style: "k4p7w2",
+    bio: "Confessions, mostly. The kind you can only make to no one.",
+    is_admin: false,
+    created_at: "2026-01-28T08:00:00Z",
+    stats: {
+      stories: 21,
+      total_views: 311_900,
+      total_reads: 172_300,
+      total_reviews: 1204,
+      average_rating: 4.8,
+      followers: 5120,
+      following: 12,
+      streak_days: 41,
+    },
+  },
+  {
+    id: "p4",
+    user_id: "u4",
+    anonymous_name: "NoName Fox",
+    avatar_style: "q9r2t6",
+    bio: "Nightlife correspondent. I remember the parts you forgot.",
+    is_admin: false,
+    created_at: "2026-03-10T08:00:00Z",
+    stats: {
+      stories: 7,
+      total_views: 64_500,
+      total_reads: 33_220,
+      total_reviews: 201,
+      average_rating: 4.5,
+      followers: 980,
+      following: 44,
+      streak_days: 4,
+    },
+  },
+  {
+    id: "p5",
+    user_id: "u5",
+    anonymous_name: "Mous 1847",
+    avatar_style: "b3n8x1",
+    bio: "Work stories. Quiet revenge. The office is a stage.",
+    is_admin: false,
+    created_at: "2026-02-19T08:00:00Z",
+    stats: {
+      stories: 11,
+      total_views: 78_900,
+      total_reads: 40_110,
+      total_reviews: 277,
+      average_rating: 4.4,
+      followers: 1320,
+      following: 9,
+      streak_days: 12,
+    },
+  },
+  {
+    id: "p6",
+    user_id: "u6",
+    anonymous_name: "Velvet Raven",
+    avatar_style: "v7c2l9",
+    bio: "Love letters I never sent. Now you can read them.",
+    is_admin: false,
+    created_at: "2026-03-25T08:00:00Z",
+    stats: {
+      stories: 6,
+      total_views: 55_200,
+      total_reads: 29_870,
+      total_reviews: 189,
+      average_rating: 4.9,
+      followers: 1740,
+      following: 18,
+      streak_days: 15,
+    },
+  },
+  {
+    id: "admin",
+    user_id: "admin-user",
+    anonymous_name: "The Curator",
+    avatar_style: "adm0in",
+    bio: "Keeping MOUS safe and anonymous.",
+    is_admin: true,
+    created_at: "2026-01-01T08:00:00Z",
+    stats: {
+      stories: 0,
+      total_views: 0,
+      total_reads: 0,
+      total_reviews: 0,
+      average_rating: 0,
+      followers: 0,
+      following: 0,
+      streak_days: 0,
+    },
+  },
+];
+
+export function getProfileById(id: string): Profile | undefined {
+  return MOCK_PROFILES.find((p) => p.id === id);
+}
+
+export function getProfileByName(name: string): Profile | undefined {
+  const target = name.toLowerCase();
+  return MOCK_PROFILES.find((p) => p.anonymous_name.toLowerCase() === target);
+}
