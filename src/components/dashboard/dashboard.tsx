@@ -31,13 +31,13 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { AnonAvatar } from "@/components/anon-avatar";
 import { Reveal } from "@/components/common/reveal";
+import { EmptyState } from "@/components/common/empty-state";
 import { SectionHeading } from "@/components/common/section-heading";
 import { StoryCard } from "@/components/story/story-card";
 import { GrowthChart } from "@/components/dashboard/growth-chart";
 import { BADGES } from "@/lib/badges";
 import { EDITOR_PROMPTS, REACTIONS } from "@/lib/constants";
-import { getCurrentProfile, getReviews, getStoriesByAuthor } from "@/lib/data";
-import type { ReactionType, Story } from "@/lib/types";
+import type { Profile, ReactionType, Story, StoryReview } from "@/lib/types";
 import { cn, formatCompact, timeAgo } from "@/lib/utils";
 
 /** Maps a badge's lucide icon name to its component. Explicit, no dynamic require. */
@@ -77,9 +77,15 @@ interface Stat {
  * aggregated stats + their published stories. Names are never shown — only the
  * anonymous pen name and abstract avatar.
  */
-export function Dashboard() {
-  const profile = getCurrentProfile();
-  const stories = useMemo(() => getStoriesByAuthor(profile.id), [profile.id]);
+export function Dashboard({
+  profile,
+  stories,
+  reviews,
+}: {
+  profile: Profile;
+  stories: Story[];
+  reviews: StoryReview[];
+}) {
   const stats = profile.stats;
 
   // A rotating encouragement prompt — re-rolls on click for a little dopamine.
@@ -169,20 +175,39 @@ export function Dashboard() {
   const reactionMax = Math.max(1, ...Object.values(reactionTotals));
 
   // Recent reviews across all of the author's stories, newest first.
+  // Reviews are fetched server-side and passed in via props.
   const recentReviews = useMemo(
     () =>
-      stories
-        .flatMap((s) => getReviews(s.id))
+      [...reviews]
         .sort(
           (a, b) =>
             new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
         )
         .slice(0, 4),
-    [stories],
+    [reviews],
   );
 
   // A handful of badges to display as "earned".
   const earnedBadges = BADGES.slice(0, 6);
+
+  // No published stories yet — encourage the author to write their first one.
+  if (stories.length === 0) {
+    return (
+      <EmptyState
+        icon={PenLine}
+        title="Your story starts here"
+        description="You haven't published anything yet. Write your first story and your private analytics will appear here."
+        action={
+          <Button asChild variant="brand" size="lg">
+            <Link href="/write">
+              <PenLine className="h-5 w-5" />
+              Write your first story
+            </Link>
+          </Button>
+        }
+      />
+    );
+  }
 
   return (
     <div className="space-y-14">

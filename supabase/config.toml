@@ -1,0 +1,7 @@
+# Supabase project config (used by the GitHub integration / CLI).
+# The integration applies files in supabase/migrations/ to your database when
+# you merge into the configured production branch.
+project_id = "mous-story"
+
+[db]
+major_version = 15

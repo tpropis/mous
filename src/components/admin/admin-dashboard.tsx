@@ -29,7 +29,11 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/toaster";
-import { getStories, getTopWriters } from "@/lib/data";
+import {
+  resolveReport,
+  setStoryFeatured,
+  setStoryStatus,
+} from "@/lib/actions";
 import type {
   Profile,
   ReportContentType,
@@ -94,11 +98,17 @@ const REPORT_STATUS_VARIANT: Record<
 
 // ------------------------------------------------------------- Component
 
-export function AdminDashboard() {
+export function AdminDashboard({
+  stories,
+  writers,
+}: {
+  stories: Story[];
+  writers: Profile[];
+}) {
   const { toast } = useToast();
 
-  const allStories = useMemo(() => getStories(), []);
-  const writers = useMemo(() => getTopWriters(8), []);
+  // Stories + writers are fetched server-side and passed in via props.
+  const allStories = stories;
 
   // Optimistic per-entity state.
   const [storyState, setStoryState] = useState<
@@ -118,30 +128,63 @@ export function AdminDashboard() {
     return (sum / rated.length).toFixed(2);
   }, [allStories]);
 
-  function toggleFeatured(story: Story) {
-    setStoryState((prev) => {
-      const next = !prev[story.id]?.featured;
-      toast({
-        title: next ? "Story featured" : "Removed from featured",
-        variant: next ? "success" : "default",
-      });
-      return { ...prev, [story.id]: { ...prev[story.id], featured: next } };
+  async function toggleFeatured(story: Story) {
+    const next = !storyState[story.id]?.featured;
+    // Optimistic update, then persist via the admin server action.
+    setStoryState((prev) => ({
+      ...prev,
+      [story.id]: { ...prev[story.id], featured: next },
+    }));
+    const res = await setStoryFeatured(story.id, next);
+    if (!res.ok) {
+      // Revert on failure.
+      setStoryState((prev) => ({
+        ...prev,
+        [story.id]: { ...prev[story.id], featured: !next },
+      }));
+      toast({ title: res.error ?? "Couldn't update story", variant: "error" });
+      return;
+    }
+    toast({
+      title: next ? "Story featured" : "Removed from featured",
+      variant: next ? "success" : "default",
     });
   }
 
-  function toggleRemoved(story: Story) {
-    setStoryState((prev) => {
-      const next = !prev[story.id]?.removed;
-      toast({
-        title: next ? "Story removed" : "Story restored",
-        variant: next ? "error" : "success",
-      });
-      return { ...prev, [story.id]: { ...prev[story.id], removed: next } };
+  async function toggleRemoved(story: Story) {
+    const next = !storyState[story.id]?.removed;
+    setStoryState((prev) => ({
+      ...prev,
+      [story.id]: { ...prev[story.id], removed: next },
+    }));
+    const res = await setStoryStatus(story.id, next ? "removed" : "published");
+    if (!res.ok) {
+      setStoryState((prev) => ({
+        ...prev,
+        [story.id]: { ...prev[story.id], removed: !next },
+      }));
+      toast({ title: res.error ?? "Couldn't update story", variant: "error" });
+      return;
+    }
+    toast({
+      title: next ? "Story removed" : "Story restored",
+      variant: next ? "error" : "success",
     });
   }
 
-  function setReportStatus(id: string, status: ReportStatus) {
+  async function setReportStatus(id: string, status: ReportStatus) {
+    const prevReports = reports;
     setReports((prev) => prev.map((r) => (r.id === id ? { ...r, status } : r)));
+    // Only resolved/dismissed are valid action targets.
+    const res = await resolveReport(
+      id,
+      status === "resolved" ? "resolved" : "dismissed",
+    );
+    if (!res.ok) {
+      setReports(prevReports);
+      toast({ title: res.error ?? "Couldn't update report", variant: "error" });
+      return;
+    }
     toast({
       title: status === "resolved" ? "Report resolved" : "Report dismissed",
       variant: status === "resolved" ? "success" : "default",

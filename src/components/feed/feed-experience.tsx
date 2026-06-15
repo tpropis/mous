@@ -23,8 +23,8 @@ import {
   MOOD_NAMES,
   TRUTH_TYPES,
 } from "@/lib/constants";
-import { getRandomStory, getStories, type FeedFilters } from "@/lib/data";
-import type { FeedSort } from "@/lib/types";
+import { applyFeedFilters, type FeedFilters } from "@/lib/data";
+import type { FeedSort, Story } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 /** How many cards to reveal initially and per "load more" page. */
@@ -45,6 +45,8 @@ const LENGTH_OPTIONS: { value: number; label: string }[] = [
 const ANY = "__any__";
 
 interface FeedExperienceProps {
+  /** Server-fetched stories; filtered/sorted client-side via applyFeedFilters. */
+  initialStories: Story[];
   initialSort?: string;
   initialCategory?: string;
   initialSearch?: string;
@@ -53,6 +55,7 @@ interface FeedExperienceProps {
 }
 
 export function FeedExperience({
+  initialStories,
   initialSort,
   initialCategory,
   initialSearch,
@@ -95,8 +98,18 @@ export function FeedExperience({
         locationVisibility === ANY ? undefined : locationVisibility,
       maxMinutes: maxMinutes === ANY ? undefined : Number(maxMinutes),
     };
-    return getStories(filters);
-  }, [sort, search, category, mood, truthType, maxMinutes, locationVisibility]);
+    // Filter/sort the server-provided stories in-memory (pure client helper).
+    return applyFeedFilters(initialStories, filters);
+  }, [
+    initialStories,
+    sort,
+    search,
+    category,
+    mood,
+    truthType,
+    maxMinutes,
+    locationVisibility,
+  ]);
 
   // Reset pagination whenever the result set changes shape.
   useEffect(() => {
@@ -162,7 +175,11 @@ export function FeedExperience({
   }, [canLoadMore, loadingMore]);
 
   function goToRandomStory() {
-    router.push(`/story/${getRandomStory().id}`);
+    // Pick a random story from the server-provided set.
+    if (initialStories.length === 0) return;
+    const random =
+      initialStories[Math.floor(Math.random() * initialStories.length)];
+    router.push(`/story/${random.id}`);
   }
 
   return (

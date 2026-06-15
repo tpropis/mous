@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -19,6 +20,8 @@ import {
   generateAvatarSeed,
   suggestAnonNames,
 } from "@/lib/anon";
+// Browser Supabase client for real auth.
+import { createClient } from "@/lib/supabase/client";
 
 // --------------------------------------------------------------- Validation
 
@@ -89,25 +92,28 @@ function SignInForm({
 }: {
   toast: ReturnType<typeof useToast>["toast"];
 }) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<SignInValues>({ resolver: zodResolver(signInSchema) });
 
-  async function onSubmit(_values: SignInValues) {
-    // PRODUCTION: real auth runs through Supabase, e.g.
-    //   const { error } = await createClient().auth.signInWithPassword({
-    //     email: _values.email,
-    //     password: _values.password,
-    //   });
-    //   if (error) { toast({ title: error.message, variant: "error" }); return; }
-    await new Promise((r) => setTimeout(r, 700)); // simulate latency
-    toast({
-      title: "Welcome back",
-      description: "Mock sign-in succeeded. Real auth uses Supabase.",
-      variant: "success",
+  async function onSubmit(values: SignInValues) {
+    // Real Supabase sign-in.
+    const supabase = createClient();
+    const { error } = await supabase.auth.signInWithPassword({
+      email: values.email,
+      password: values.password,
     });
+    if (error) {
+      toast({ title: error.message, variant: "error" });
+      return;
+    }
+    toast({ title: "Welcome back", variant: "success" });
+    router.push(searchParams.get("next") ?? "/dashboard");
+    router.refresh();
   }
 
   return (
@@ -163,6 +169,8 @@ function SignUpForm({
 }: {
   toast: ReturnType<typeof useToast>["toast"];
 }) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const {
     register,
     handleSubmit,
@@ -183,20 +191,22 @@ function SignUpForm({
     setSeed(generateAvatarSeed());
   }
 
-  async function onSubmit(_values: SignUpValues) {
-    // PRODUCTION: create the account + anonymous profile via Supabase, e.g.
-    //   const { error } = await createClient().auth.signUp({
-    //     email: _values.email,
-    //     password: _values.password,
-    //     options: { data: { anonymous_name: name, avatar_style: seed } },
-    //   });
-    //   if (error) { toast({ title: error.message, variant: "error" }); return; }
-    await new Promise((r) => setTimeout(r, 700)); // simulate latency
-    toast({
-      title: `You're in as ${name}`,
-      description: "Mock account created. Real auth uses Supabase.",
-      variant: "success",
+  async function onSubmit(values: SignUpValues) {
+    // Real Supabase sign-up. The anonymous identity travels in user metadata;
+    // a DB trigger turns it into the public anonymous profile.
+    const supabase = createClient();
+    const { error } = await supabase.auth.signUp({
+      email: values.email,
+      password: values.password,
+      options: { data: { anonymous_name: name, avatar_style: seed } },
     });
+    if (error) {
+      toast({ title: error.message, variant: "error" });
+      return;
+    }
+    toast({ title: `You're in as ${name}`, variant: "success" });
+    router.push(searchParams.get("next") ?? "/dashboard");
+    router.refresh();
   }
 
   return (

@@ -1,8 +1,9 @@
 /**
  * Supabase database types.
- * Hand-authored to match `supabase/schema.sql`. In a real project these are
- * generated with `supabase gen types typescript`. Kept intentionally close to
- * the CLI output shape so regeneration is a drop-in replacement.
+ * Hand-authored to match `supabase/migrations/20260615000000_init.sql`. In a real
+ * project these are generated with `supabase gen types typescript`. Insert/Update
+ * types are written concretely (not self-referential) so the supabase-js query
+ * builder resolves payload types correctly instead of falling back to `never`.
  */
 
 export type Json =
@@ -30,12 +31,20 @@ export interface Database {
           id?: string;
           user_id: string;
           anonymous_name: string;
-          avatar_style: string;
+          avatar_style?: string;
           bio?: string | null;
           is_admin?: boolean;
           created_at?: string;
         };
-        Update: Partial<Database["public"]["Tables"]["profiles"]["Insert"]>;
+        Update: {
+          id?: string;
+          user_id?: string;
+          anonymous_name?: string;
+          avatar_style?: string;
+          bio?: string | null;
+          is_admin?: boolean;
+          created_at?: string;
+        };
         Relationships: [];
       };
       stories: {
@@ -85,7 +94,26 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
-        Update: Partial<Database["public"]["Tables"]["stories"]["Insert"]>;
+        Update: {
+          title?: string;
+          body?: string;
+          excerpt?: string;
+          category?: string;
+          mood?: string;
+          tags?: string[];
+          truth_type?: string;
+          location_visibility?: string;
+          city?: string | null;
+          state?: string | null;
+          content_warning?: boolean;
+          content_warning_label?: string | null;
+          status?: string;
+          featured?: boolean;
+          view_count?: number;
+          read_count?: number;
+          mission_id?: string | null;
+          updated_at?: string;
+        };
         Relationships: [];
       };
       story_reactions: {
@@ -103,7 +131,9 @@ export interface Database {
           reaction_type: string;
           created_at?: string;
         };
-        Update: Partial<Database["public"]["Tables"]["story_reactions"]["Insert"]>;
+        Update: {
+          reaction_type?: string;
+        };
         Relationships: [];
       };
       story_reviews: {
@@ -120,22 +150,34 @@ export interface Database {
           review_text: string | null;
           created_at: string;
         };
-        Insert: Omit<
-          Database["public"]["Tables"]["story_reviews"]["Row"],
-          "id" | "created_at"
-        > & { id?: string; created_at?: string };
-        Update: Partial<Database["public"]["Tables"]["story_reviews"]["Insert"]>;
+        Insert: {
+          id?: string;
+          story_id: string;
+          reviewer_id: string;
+          rating: number;
+          writing_score?: number;
+          honesty_score?: number;
+          emotion_score?: number;
+          impact_score?: number;
+          entertainment_score?: number;
+          review_text?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          rating?: number;
+          writing_score?: number;
+          honesty_score?: number;
+          emotion_score?: number;
+          impact_score?: number;
+          entertainment_score?: number;
+          review_text?: string | null;
+        };
         Relationships: [];
       };
       bookmarks: {
         Row: { id: string; user_id: string; story_id: string; created_at: string };
-        Insert: {
-          id?: string;
-          user_id: string;
-          story_id: string;
-          created_at?: string;
-        };
-        Update: Partial<Database["public"]["Tables"]["bookmarks"]["Insert"]>;
+        Insert: { id?: string; user_id: string; story_id: string; created_at?: string };
+        Update: { id?: string };
         Relationships: [];
       };
       follows: {
@@ -151,7 +193,7 @@ export interface Database {
           followed_profile_id: string;
           created_at?: string;
         };
-        Update: Partial<Database["public"]["Tables"]["follows"]["Insert"]>;
+        Update: { id?: string };
         Relationships: [];
       };
       missions: {
@@ -165,11 +207,24 @@ export interface Database {
           reward_badge: string | null;
           created_at: string;
         };
-        Insert: Omit<
-          Database["public"]["Tables"]["missions"]["Row"],
-          "id" | "created_at"
-        > & { id?: string; created_at?: string };
-        Update: Partial<Database["public"]["Tables"]["missions"]["Insert"]>;
+        Insert: {
+          id?: string;
+          title: string;
+          description: string;
+          category: string;
+          difficulty?: string;
+          prompt?: string;
+          reward_badge?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          title?: string;
+          description?: string;
+          category?: string;
+          difficulty?: string;
+          prompt?: string;
+          reward_badge?: string | null;
+        };
         Relationships: [];
       };
       user_missions: {
@@ -181,11 +236,18 @@ export interface Database {
           completed_story_id: string | null;
           created_at: string;
         };
-        Insert: Omit<
-          Database["public"]["Tables"]["user_missions"]["Row"],
-          "id" | "created_at"
-        > & { id?: string; created_at?: string };
-        Update: Partial<Database["public"]["Tables"]["user_missions"]["Insert"]>;
+        Insert: {
+          id?: string;
+          user_id: string;
+          mission_id: string;
+          status?: string;
+          completed_story_id?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          status?: string;
+          completed_story_id?: string | null;
+        };
         Relationships: [];
       };
       reports: {
@@ -199,11 +261,20 @@ export interface Database {
           status: string;
           created_at: string;
         };
-        Insert: Omit<
-          Database["public"]["Tables"]["reports"]["Row"],
-          "id" | "created_at" | "status"
-        > & { id?: string; created_at?: string; status?: string };
-        Update: Partial<Database["public"]["Tables"]["reports"]["Insert"]>;
+        Insert: {
+          id?: string;
+          reporter_id: string;
+          content_type: string;
+          content_id: string;
+          reason: string;
+          details?: string | null;
+          status?: string;
+          created_at?: string;
+        };
+        Update: {
+          status?: string;
+          details?: string | null;
+        };
         Relationships: [];
       };
       badges: {
@@ -216,28 +287,50 @@ export interface Database {
           threshold: number | null;
           accent: string;
         };
-        Insert: Database["public"]["Tables"]["badges"]["Row"];
-        Update: Partial<Database["public"]["Tables"]["badges"]["Row"]>;
+        Insert: {
+          id: string;
+          name: string;
+          description: string;
+          icon: string;
+          requirement_type: string;
+          threshold?: number | null;
+          accent?: string;
+        };
+        Update: {
+          name?: string;
+          description?: string;
+          icon?: string;
+          requirement_type?: string;
+          threshold?: number | null;
+          accent?: string;
+        };
         Relationships: [];
       };
       user_badges: {
-        Row: {
-          id: string;
-          user_id: string;
-          badge_id: string;
-          earned_at: string;
-        };
-        Insert: {
-          id?: string;
-          user_id: string;
-          badge_id: string;
-          earned_at?: string;
-        };
-        Update: Partial<Database["public"]["Tables"]["user_badges"]["Insert"]>;
+        Row: { id: string; user_id: string; badge_id: string; earned_at: string };
+        Insert: { id?: string; user_id: string; badge_id: string; earned_at?: string };
+        Update: { id?: string };
         Relationships: [];
       };
     };
-    Views: { [key: string]: never };
+    Views: {
+      profile_public: {
+        Row: {
+          id: string;
+          anonymous_name: string;
+          avatar_style: string;
+          bio: string | null;
+          created_at: string;
+          stories: number;
+          total_views: number;
+          total_reads: number;
+          total_reviews: number;
+          average_rating: number;
+          followers: number;
+        };
+        Relationships: [];
+      };
+    };
     Functions: { [key: string]: never };
     Enums: { [key: string]: never };
     CompositeTypes: { [key: string]: never };

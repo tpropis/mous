@@ -8,7 +8,7 @@ import { SectionHeading } from "@/components/common/section-heading";
 import { EmptyState } from "@/components/common/empty-state";
 import { TopWriters } from "@/components/explore/top-writers";
 import { BRAND, CATEGORIES, MOODS } from "@/lib/constants";
-import { getStories, getTopWriters } from "@/lib/data";
+import { getStories, getTopWriters } from "@/lib/queries";
 
 /** Read a possibly-array search param as a single string. */
 function single(value: string | string[] | undefined): string | undefined {
@@ -24,15 +24,22 @@ interface ExplorePageProps {
   };
 }
 
-export default function ExplorePage({ searchParams }: ExplorePageProps) {
+export default async function ExplorePage({ searchParams }: ExplorePageProps) {
   const activeCategory = single(searchParams.category);
 
-  // When deep-linked with ?category=, surface a filtered grid up top.
-  const categoryStories = activeCategory
-    ? getStories({ category: activeCategory })
-    : [];
+  // Fetch everything from the async read layer in parallel for speed:
+  // optional deep-linked category grid, each mood showcase, and top writers.
+  const [categoryStories, moodShowcases, topWriters] = await Promise.all([
+    // When deep-linked with ?category=, surface a filtered grid up top.
+    activeCategory ? getStories({ category: activeCategory }) : Promise.resolve([]),
+    Promise.all(SHOWCASE_MOODS.map((moodName) => getStories({ mood: moodName }))),
+    getTopWriters(8),
+  ]);
 
-  const topWriters = getTopWriters(8);
+  // Map each showcase mood to its (capped) story list, keyed by mood name.
+  const storiesByMood = new Map(
+    SHOWCASE_MOODS.map((moodName, i) => [moodName, moodShowcases[i].slice(0, 3)]),
+  );
 
   return (
     <div className="relative">
@@ -194,8 +201,8 @@ export default function ExplorePage({ searchParams }: ExplorePageProps) {
           <div className="mt-10 grid gap-6 md:grid-cols-3">
             {SHOWCASE_MOODS.map((moodName) => {
               const meta = MOODS.find((m) => m.name === moodName);
-              // Pull a couple of stories per mood for the compact showcase list.
-              const stories = getStories({ mood: moodName }).slice(0, 3);
+              // Pull the pre-fetched (capped) stories for this mood showcase.
+              const stories = storiesByMood.get(moodName) ?? [];
               return (
                 <div
                   key={moodName}

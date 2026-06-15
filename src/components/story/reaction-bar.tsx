@@ -3,11 +3,14 @@
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { REACTIONS } from "@/lib/constants";
+import { toggleReaction } from "@/lib/actions";
 import type { ReactionSummary, ReactionType } from "@/lib/types";
 import { formatCompact, cn } from "@/lib/utils";
 
 interface ReactionBarProps {
   initial: ReactionSummary;
+  /** When provided, toggles persist via the `toggleReaction` server action. */
+  storyId?: string;
   className?: string;
 }
 
@@ -16,7 +19,7 @@ interface ReactionBarProps {
  * a springy pop + a floating emoji burst. Optimistic — in production each toggle
  * would write to `story_reactions`.
  */
-export function ReactionBar({ initial, className }: ReactionBarProps) {
+export function ReactionBar({ initial, storyId, className }: ReactionBarProps) {
   const [counts, setCounts] = useState<ReactionSummary>(initial);
   const [active, setActive] = useState<Set<ReactionType>>(new Set());
   const [burst, setBurst] = useState<{ id: number; emoji: string } | null>(null);
@@ -28,6 +31,8 @@ export function ReactionBar({ initial, className }: ReactionBarProps) {
       next.has(type) ? next.delete(type) : next.add(type);
       setCounts((c) => ({ ...c, [type]: Math.max(0, c[type] + (isOn ? -1 : 1)) }));
       if (!isOn) setBurst({ id: Date.now(), emoji });
+      // Persist the toggle server-side (fire-and-forget; optimistic UI stands).
+      if (storyId) void toggleReaction(storyId, type);
       return next;
     });
   }

@@ -23,7 +23,8 @@ import { EmptyState } from "@/components/common/empty-state";
 import { SectionHeading } from "@/components/common/section-heading";
 import { StoryCard } from "@/components/story/story-card";
 import { FollowButton } from "@/components/profile/follow-button";
-import { BADGES, getProfile, getStoriesByAuthor } from "@/lib/data";
+import { BADGES } from "@/lib/data";
+import { getProfileByName, getStoriesByAuthor } from "@/lib/queries";
 import { slugToName } from "@/lib/anon";
 import { formatCompact } from "@/lib/utils";
 
@@ -46,8 +47,8 @@ interface PageProps {
   params: { anonymousName: string };
 }
 
-export function generateMetadata({ params }: PageProps): Metadata {
-  const profile = getProfile(slugToName(params.anonymousName));
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const profile = await getProfileByName(slugToName(params.anonymousName));
   if (!profile) return { title: "Writer not found" };
   return {
     title: profile.anonymous_name,
@@ -57,11 +58,11 @@ export function generateMetadata({ params }: PageProps): Metadata {
   };
 }
 
-export default function ProfilePage({ params }: PageProps) {
-  const profile = getProfile(slugToName(params.anonymousName));
+export default async function ProfilePage({ params }: PageProps) {
+  const profile = await getProfileByName(slugToName(params.anonymousName));
   if (!profile) notFound();
 
-  const stories = getStoriesByAuthor(profile.id);
+  const stories = await getStoriesByAuthor(profile.id);
   const stats = profile.stats;
 
   // Show a small, deterministic selection of badges as "earned".
@@ -115,7 +116,10 @@ export default function ProfilePage({ params }: PageProps) {
             </div>
           </div>
           <div className="shrink-0">
-            <FollowButton anonymousName={profile.anonymous_name} />
+            <FollowButton
+              profileId={profile.id}
+              anonymousName={profile.anonymous_name}
+            />
           </div>
         </header>
 
