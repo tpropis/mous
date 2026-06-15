@@ -221,6 +221,17 @@ alter table public.reports         enable row level security;
 alter table public.badges          enable row level security;
 alter table public.user_badges     enable row level security;
 
+-- Idempotency: drop any pre-existing policies on public tables so this whole
+-- migration can be safely re-run (Postgres has no `create policy if not exists`).
+do $$
+declare r record;
+begin
+  for r in select policyname, tablename from pg_policies where schemaname = 'public'
+  loop
+    execute format('drop policy if exists %I on public.%I', r.policyname, r.tablename);
+  end loop;
+end $$;
+
 create policy "profiles readable" on public.profiles for select using (true);
 create policy "insert own profile" on public.profiles for insert with check (user_id = auth.uid());
 create policy "update own profile" on public.profiles for update using (user_id = auth.uid()) with check (user_id = auth.uid());
